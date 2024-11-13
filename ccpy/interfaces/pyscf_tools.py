@@ -34,12 +34,12 @@ def load_pyscf_uhf_integrals(
         mo_energies={"a": meanfield.mo_energy[0], "b": meanfield.mo_energy[1]},
         mo_occupation={"a": meanfield.mo_occ[0], "b": meanfield.mo_occ[1]},
     )
-    #
-    kinetic_aoints = molecule.intor_symmetric("int1e_kin")
-    nuclear_aoints = molecule.intor_symmetric("int1e_nuc")
-    #
-    v_ao = np.transpose(molecule.intor("int2e", aosym="s1"), (0, 2, 1, 3))
-    z_ao = kinetic_aoints + nuclear_aoints
+    if meanfield._eri is not None:
+        v_ao = ao2mo.restore("s1", meanfield._eri, norbitals)
+    else:
+        v_ao = molecule.intor("int2e", aosym="s1")
+    v_ao = np.transpose(v_ao, (0, 2, 1, 3))
+    z_ao = meanfield.get_hcore()
     system.reference_energy = meanfield.e_tot
     return system, getUHFHamiltonian(mo_coeff_a, mo_coeff_b, z_ao, v_ao, system, normal_ordered, sorted)
 
