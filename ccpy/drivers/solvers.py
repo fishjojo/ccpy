@@ -26,6 +26,9 @@ def signal_handler(sig, frame):
 # Register the signal handler for SIGINT
 signal.signal(signal.SIGINT, signal_handler)
 
+def _write_T(T, idx):
+    np.save(f"cc_amp_{idx}.npy", T)
+
 # [TODO]: Add biorthogonal L and R single-root Davidson solver (non-Hermitian Hirao-Nakatsuji algorithm)
 def eomcc_nonlinear_diis(HR, update_r, B0, R, dR, omega, T, H, X, fock, system, options):
     """
@@ -563,11 +566,12 @@ def cc_jacobi(update_t, T, dT, H, X, system, options, t3_excitations=None, acpar
     energy_old = get_cc_energy(T, H)
     is_converged = False
 
-    print("   Energy of initial guess = {:>20.10f}".format(energy_old))
+    print("   Energy of initial guess = {:>20.10f}".format(energy_old), flush=True)
 
     t_start = time.perf_counter()
     t_cpu_start = time.process_time()
     print_cc_iteration_header()
+
     for niter in range(options["maximum_iterations"]):
         # get iteration start time
         t1 = time.perf_counter()
@@ -609,7 +613,11 @@ def cc_jacobi(update_t, T, dT, H, X, system, options, t3_excitations=None, acpar
             )
             print(f"   Total CPU time is {time.process_time() - t_cpu_start} seconds")
             is_converged = True
+            _write_T(T.flatten(), niter)
             break
+
+        if niter > 0 and niter % 10 == 0:
+            _write_T(T.flatten(), niter)
 
         # Save T and dT vectors to disk for DIIS
         if niter >= num_throw_away and do_diis:

@@ -6,9 +6,9 @@ project(
   meson_version: '>= 1.1.0',
   default_options: [
     'fortran_std=legacy',
-    'c_std=c17',
-    'blas=openblas',
-    'lapack=openblas'
+    'c_std=c11',
+    'blas=mkl',
+    'lapack=mkl'
   ],
 )
 

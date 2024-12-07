@@ -166,7 +166,8 @@ def print_cc_iteration(
     print(
         ITERATION_FMT.format(
             iteration_idx, residuum, delta_energy, correlation_energy, time_str, memory,
-        )
+        ),
+        flush=True
     )
 
 def print_eomcc_iteration(

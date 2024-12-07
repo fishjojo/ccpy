@@ -277,7 +277,7 @@ class Driver:
         self.print_options()
         if acparray:
             print("   ACP array = ", acparray)
-        print("   CC calculation started on", get_timestamp())
+        print("   CC calculation started on", get_timestamp(), flush=True)
 
         # Create either the standard CC cluster operator
         if self.T is None:
@@ -305,7 +305,7 @@ class Driver:
                                                 acparray=acparray,
                                                )
         cc_calculation_summary(self.T, self.system.reference_energy, self.correlation_energy, self.system, self.options["amp_print_threshold"])
-        print("   CC calculation ended on", get_timestamp())
+        print("   CC calculation ended on", get_timestamp(), flush=True)
 
     def run_ccp(self, method, t3_excitations, acparray=None):
         """
