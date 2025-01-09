@@ -151,7 +151,7 @@ class Driver:
             self.operator_params["order"] = 3
             self.operator_params["number_particles"] = 3
             self.operator_params["number_holes"] = 3
-        elif method.lower() in ["ccsdtq", "ccsdtq-rev"]:
+        elif method.lower() in ["ccsdtq"]:
             self.operator_params["order"] = 4
             self.operator_params["number_particles"] = 4
             self.operator_params["number_holes"] = 4
@@ -170,7 +170,7 @@ class Driver:
             self.order = 2
             self.num_particles = 1
             self.num_holes = 2
-        elif method.lower() in ["ipeom3", "left_ipeom3", "ipeomccsdt"]:
+        elif method.lower() in ["ipeom3", "left_ipeom3", "ipeomccsdta", "ipeomccsdt"]:
             self.order = 3
             self.num_particles = 2
             self.num_holes = 3
@@ -183,7 +183,7 @@ class Driver:
             self.order = 2
             self.num_particles = 2
             self.num_holes = 1
-        elif method.lower() in ["eaeom3", "left_eaeom3", "eaeomccsdt"]:
+        elif method.lower() in ["eaeom3", "left_eaeom3", "eaeomccsdta", "eaeomccsdt"]:
             self.order = 3
             self.num_particles = 3
             self.num_holes = 2
@@ -196,7 +196,7 @@ class Driver:
             self.order = 3
             self.num_particles = 1
             self.num_holes = 3
-        elif method.lower() in ["dipeom4", "left_dipeom4", "dipeomccsdt"]:
+        elif method.lower() in ["dipeom4", "left_dipeom4", "dipeomccsdt", "dipeomccsdta"]:
             self.order = 4
             self.num_particles = 2
             self.num_holes = 4
@@ -300,7 +300,6 @@ class Driver:
                                                 dT,
                                                 self.hamiltonian,
                                                 cc_intermediates,
-                                                self.system,
                                                 self.options,
                                                 acparray=acparray,
                                                )
@@ -382,7 +381,6 @@ class Driver:
                                                        dT,
                                                        self.hamiltonian,
                                                        cc_intermediates,
-                                                       self.system,
                                                        self.options,
                                                        t3_excitations,
                                                        acparray=acparray)
@@ -766,14 +764,21 @@ class Driver:
                 eomcc_calculation_summary(self.R[istate], self.vertical_excitation_energy[istate], self.correlation_energy, self.r0[istate], self.relative_excitation_level[istate], is_converged, istate, self.system, self.options["amp_print_threshold"])
                 print("   EOMCC calculation for root %d ended on" % istate, get_timestamp(), "\n")
         else:
+            B_prev = []
             for j, istate in enumerate(state_index):
                 print("   EOMCC calculation for root %d started on" % istate, get_timestamp())
                 print("\n   Energy of initial guess = {:>10.10f}".format(self.vertical_excitation_energy[istate]))
                 print_ee_amplitudes(self.R[istate], self.system, self.R[istate].order, self.options["amp_print_threshold"])
+                if j > 0:
+                    B = np.hstack((self.R[istate].flatten()[:, np.newaxis] / np.linalg.norm(self.R[istate].flatten()), np.asarray(B_prev).T))
+                else:
+                    B = self.R[istate].flatten()[:, np.newaxis] / np.linalg.norm(self.R[istate].flatten())
                 self.R[istate], self.vertical_excitation_energy[istate], is_converged = eomcc_davidson(HR_function, update_function,
-                                                                                                       self.R[istate].flatten() / np.linalg.norm(self.R[istate].flatten()),
+                                                                                                       B,
                                                                                                        self.R[istate], dR, self.vertical_excitation_energy[istate],
                                                                                                        self.T, self.hamiltonian, self.system, self.options)
+                # Keep the computed root in the starting guess space for subsequent roots
+                B_prev.append(self.R[istate].flatten() / np.linalg.norm(self.R[istate].flatten()))
                 # Compute r0 a posteriori
                 self.r0[istate] = get_r0(self.R[istate], self.hamiltonian, self.vertical_excitation_energy[istate])
                 # compute the relative excitation level (REL) metric
@@ -2237,6 +2242,13 @@ class Driver:
             assert self.flag_hbar
             # Perform ground-state correction
             _, self.deltap4[0] = calc_crcc24(self.T, self.L[0], self.correlation_energy, self.hamiltonian, self.fock, self.system, self.options["RHF_symmetry"])
+
+        if method.lower() == "crcc34":
+            from ccpy.moments.crcc34 import calc_crcc34
+            # Ensure that HBar is set
+            assert self.flag_hbar
+            # perform ground-state correction
+            _, self.deltap4[0] = calc_crcc34(self.T, self.L[0], self.correlation_energy, self.hamiltonian, self.fock, self.system, self.options["RHF_symmetry"])
 
         if method.lower() == "ccp4":
             from ccpy.moments.ccp4 import calc_ccp4

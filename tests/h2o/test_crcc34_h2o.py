@@ -7,14 +7,14 @@ import numpy as np
 from pyscf import scf, gto
 from ccpy import Driver
 
-def test_ccsdtq_h2o():
+def test_crcc34_h2o():
     # 2 Re
     geometry = [["O", (0.0, 0.0, -0.0180)],
                 ["H", (0.0, 3.030526, -2.117796)],
                 ["H", (0.0, -3.030526, -2.117796)]]
     mol = gto.M(
         atom=geometry,
-        basis="dz",
+        basis="cc-pvdz",
         charge=0,
         spin=0,
         symmetry="C2V",
@@ -27,12 +27,19 @@ def test_ccsdtq_h2o():
     driver = Driver.from_pyscf(mf, nfrozen=0)
     driver.system.print_info()
 
-    driver.run_cc(method="ccsdtq")
+    driver.run_cc(method="ccsdt")
+    driver.run_hbar(method="ccsdt")
+    driver.run_leftcc(method="left_ccsdt")
+    driver.run_ccp4(method="crcc34")
 
-    # Check CCSDTQ correlation energy
-    assert np.allclose(driver.correlation_energy, -0.30995754, atol=1.0e-07)
-    # Check CCSDTQ total energy
-    assert np.allclose(driver.system.reference_energy + driver.correlation_energy, -75.90513822, atol=1.0e-07)
+    #
+    # Check the results
+    #
+    # Check that CCSDT total energy is correct
+    assert np.allclose(driver.system.reference_energy + driver.correlation_energy, -75.9530698378, atol=1.0e-07)
+    # Check that CR-CC(3,4)_A = CCSDT(2)_Q total energy is correct
+    assert np.allclose(driver.system.reference_energy + driver.correlation_energy + driver.deltap4[0]["A"], -75.9521955199, atol=1.0e-07)
+
 
 if __name__ == "__main__":
-    test_ccsdtq_h2o()
+    test_crcc34_h2o()
