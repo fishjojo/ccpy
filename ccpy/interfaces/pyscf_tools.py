@@ -35,7 +35,7 @@ def load_pyscf_uhf_integrals(
         mo_occupation={"a": meanfield.mo_occ[0], "b": meanfield.mo_occ[1]},
     )
     if meanfield._eri is not None:
-        v_ao = ao2mo.restore("s1", meanfield._eri, norbitals)
+        v_ao = ao2mo.restore("s1", meanfield._eri, mo_coeff_a.shape[0])
     else:
         v_ao = molecule.intor("int2e", aosym="s1")
     v_ao = np.transpose(v_ao, (0, 2, 1, 3))
