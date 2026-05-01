@@ -1,6 +1,8 @@
 
 # CCpy: A coupled-cluster package written in Python.
 
+[![Build Status](https://github.com/piecuch-group/ccpy/actions/workflows/tests.yml/badge.svg)](https://github.com/piecuch-group/ccpy/actions/workflows/tests.yml)
+
 ## Overview
 <p align="justify">
 CCpy is a research-level Python package for performing nonrelativistic and spin-free scalar relativistic electronic structure calculations for molecular systems
@@ -13,7 +15,7 @@ CCpy provides easy-to-use interfaces to both PySCF and GAMESS for obtaining the 
 one- and two-electron integrals in the molecular orbital basis that are used to set up the correlated CC calculations. A general interface that can be used to 
 initialize CCpy calculations using reference state information and one- and two-electron integrals provided by an FCIDUMP file is also included. 
 
-CCpy is distributed as an official extension module of PySCF (see https://pyscf.org/install.html#extension-modules).
+CCpy is distributed as an official extension module of PySCF (see [https://pyscf.org/install.html#extension-modules](https://pyscf.org/user/extensions.html)).
 </p>
 
 ## Available Computational Options
@@ -765,14 +767,21 @@ Approximate CC method with quadruples. Currently compatible with RHF references 
 <summary>CIPSI-driven ec-CC-II and ec-CC-II<sub>3</sub> </summary>
 
 ### Summary
+The CIPSI-driven ec-CC-II approach, introduced in Ref. [1], solves the CCSD-like equations
+for one- and two-body clusters in the presence of their three- and four-body counterparts
+extracted from the CIPSI wave functions computed with Quantum Package. In the ec-CC-II
+calculations, cluster analysis of the CI state is carried out so that three- and
+four-body cluster amplitudes corresponding to triply and quadruply excited determinants
+that do not exist in the underlying CI expansion are discarded. The ec-CC-II_{3} methodology
+corrects the ec-CC-II energetics for the three-body correlation effects missing
+from the underlying CI state.
 
 ### Sample Code
 
 ```python3
 from pathlib import Path
 import numpy as np
-from ccpy.drivers.driver import Driver
-from ccpy.utilities.pspace import get_pspace_from_cipsi
+from ccpy import Driver, get_triples_pspace_from_cipsi
 
 TEST_DATA_DIR = str(Path(__file__).parents[1].absolute() / "data")
 
@@ -785,19 +794,78 @@ def test_eccc23_h2o():
         nfrozen=0,
     )
 
+    # CI vector file from CIPSI
     civecs = TEST_DATA_DIR + "/h2o/civecs-10k.dat"
-    _, t3_excitations, _ = get_pspace_from_cipsi(civecs, driver.system, nexcit=3)
+    # Extract T3 excitations in CIPSI
+    t3_excitations, _ = get_triples_pspace_from_cipsi(civecs, driver.system)
 
+    # Run ec-CC-II calculation (solve T1 & T2 in presence of T3/T4 from CIPSI)
     driver.run_eccc(method="eccc2", ci_vectors_file=civecs)
+    # Compute CCSD-like HBar using T1 & T2 from ec-CC-II
     driver.run_hbar(method="ccsd")
+    # Perform left-CCSD-like calculation to obtain L1 & L2
     driver.run_leftcc(method="left_ccsd")
+    # Evaluate ec-CC-II_{3} triples correction to ec-CC-II energies
     driver.run_ccp3(method="ccp3", state_index=0, t3_excitations=t3_excitations)
+    # Total ec-CC-II energy
+    total_energy_CC = driver.system.reference_energy + driver.correlation_energy
+    # ec-CC-II_{3} energy
+    total_energy_3 = total_energy_CC + driver.deltap3[0]["D"]
 ```
 
 ### References
 1. I. Magoulas, K. Gururangan, P. Piecuch, J. E. Deustua, and J. Shen, J. Chem. Theory Comput. **17**, 4006 (2021) <br />
 (see https://doi.org/10.1021/acs.jctc.1c00181; cf. also https://doi.org/10.48550/arXiv.2102.10143)
 </details>
+
+<details>
+<summary>CIPSI-driven ec-CC-II<sub>3,4</sub> </summary>
+
+### Summary
+The CIPSI-driven ec-CC-II_{3,4} approach corrects the ec-CC-II energetics for the 
+three- and four-body correlation effects missing from the underlying CI state.
+
+### Sample Code
+
+```python3
+from pathlib import Path
+import numpy as np
+from ccpy import Driver, get_triples_pspace_from_cipsi, get_quadruples_pspace_from_cipsi
+
+TEST_DATA_DIR = str(Path(__file__).parents[1].absolute() / "data")
+
+def test_eccc34_h2o():
+
+    driver = Driver.from_gamess(
+        logfile=TEST_DATA_DIR + "/h2o/h2o-Re.log",
+        onebody=TEST_DATA_DIR + "/h2o/onebody.inp",
+        twobody=TEST_DATA_DIR + "/h2o/twobody.inp",
+        nfrozen=0,
+    )
+
+    civecs = TEST_DATA_DIR + "/h2o/civecs-10k.dat"
+    t3_excitations, _ = get_triples_pspace_from_cipsi(civecs, driver.system)
+    t3_excitations, _ = get_quadruples_pspace_from_cipsi(civecs, driver.system)
+
+    # Run ec-CC-II calculation (solve T1 & T2 in presence of T3/T4 from CIPSI)
+    driver.run_eccc(method="eccc2", ci_vectors_file=civecs)
+    # Compute CCSD-like HBar using T1 & T2 from ec-CC-II
+    driver.run_hbar(method="ccsd")
+    # Perform left-CCSD-like calculation to obtain L1 & L2
+    driver.run_leftcc(method="left_ccsd")
+    # Evaluate ec-CC-II_{3} triples correction to ec-CC-II energies
+    driver.run_ccp3(method="ccp3", state_index=0, t3_excitations=t3_excitations)
+    # Evaluate ec-CC-II_{4} quadruples correction to ec-CC-II energies
+    driver.run_ccp4(method="ccp4", state_index=0, t4_excitations=t4_excitations)
+    # Total ec-CC-II energy
+    total_energy_CC = driver.system.reference_energy + driver.correlation_energy
+    # ec-CC-II_{3A,4A} energy
+    total_energy_AA = total_energy_CC + driver.deltap3[0]["A"] + driver.deltap4[0]["A"]
+    # ec-CC-II_{3D,4A} energy
+    total_energy_DA = total_energy_CC + driver.deltap3[0]["D"] + driver.deltap4[0]["A"]    
+```
+</details>
+
 
 #### Approximate Coupled-Pair (ACP) Approaches
   - ACCD
@@ -1365,13 +1433,14 @@ located within `openblas/lib`, or something similar.
 
 ## CCpy Development Team
 
-Karthik Gururangan\
-Doctoral student, Department of Chemistry, Michigan State University
-e-mail: gururang@msu.edu\
+Dr. Karthik Gururangan\
+Computational Scientist, DecisionNext\
+e-mail: kgururangan@gmail.com\
 (lead developer)
 
 Dr. J. Emiliano Deustua\
 COO and Co-founder, Examol\
+e-mail: edeustua@gmail.com\
 (co-developer)
 
 Professor Piotr Piecuch\
@@ -1379,8 +1448,6 @@ University Distinguished Professor and MSU Research Foundation Professor, Depart
 Adjunct Professor, Department of Physics and Astronomy, Michigan State University\
 e-mail: piecuch@chemistry.msu.edu\
 (co-developer and principal investigator)
-
-Additional contributors: Tiange Deng (doctoral student, Department of Chemistry, Michigan State University; ACCD and ACCSD options).
 
 ## Acknowledgements
 

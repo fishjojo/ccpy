@@ -10,12 +10,12 @@ requires = [
     # Note that building against numpy 1.x works fine too - users and
     # redistributors can do this by installing the numpy version they like and
     # disabling build isolation.
-    "numpy>=2.0.0rc1",
+    "numpy>=2.0.0",
 ]
 
 [project]
 name = "coupled-cluster-py"
-version = "0.0.4"
+version = "0.0.5"
 # TODO: add `license-files` once PEP 639 is accepted (see meson-python#88)
 #       at that point, no longer include them in `py3.install_sources()`
 license = { file = "COPYING" }
@@ -32,8 +32,8 @@ maintainers = [
 #     https://scipy.github.io/devdocs/dev/core-dev/index.html#version-ranges-for-numpy-and-other-dependencies
 requires-python = ">=3.10"
 dependencies = [
-    "numpy>=1.23.5",
-    #"pyscf",
+    "numpy>=2.0",
+    "pyscf",
     "cclib",
     "psutil",
 ] # keep in sync with `min_numpy_version` in meson.build
@@ -74,7 +74,7 @@ markers = ["short: marks tests as short (deselect with '-m \"not short\"')"]
 
 [tool.cibuildwheel]
 #skip = "cp36-* cp37-* cp38-* pp* *_ppc64le *_i686 *_s390x"
-build = "cp311-manylinux_x86_64 cp312-manylinux_x86_64"
+build = "cp310-manylinux_x86_64 cp311-manylinux_x86_64 cp312-manylinux_x86_64 cp313-manylinux_x86_64"
 build-verbosity = 3
 # gmpy2 and scikit-umfpack are usually added for testing. However, there are
 # currently wheels missing that make the test script fail.

@@ -100,14 +100,14 @@ endif
 
 # Build CCPY fortran
 sort_sources = [
-   'sort/qsort_module.f90',
-   'sort/qsort.c',
+  'sort/qsort_module.f90',
+  'sort/qsort.c',
 ]
 
 sort_lib = static_library('sort',
- sort_sources,
- c_args: '-O3',
- fortran_args: '-ffree-line-length-512'
+  sort_sources,
+  c_args: '-O3',
+  fortran_args: '-ffree-line-length-512'
 )
 
 fortran_sources = [
@@ -124,12 +124,15 @@ fortran_sources = [
   'fortran/ccsdt_p_loops.f90',
   'fortran/cct3_loops.f90',
   'fortran/clusteranalysis.f90',
+  'fortran/combinatorics.f90',
+  'fortran/constants.f90',
   'fortran/crcc24_loops.f90',
   'fortran/crcc24_opt_loops.f90',
   'fortran/crcc_loops.f90',
   'fortran/creacc_loops.f90',
   'fortran/cripcc_loops.f90',
   'fortran/deaeom4_p_loops.f90',
+  'fortran/deaeom4_p_intermediates.f90',
   'fortran/eaccp3_correction.f90',
   'fortran/eaccp3_loops.f90',
   'fortran/eaeom3_p_intermediates.f90',
@@ -142,6 +145,7 @@ fortran_sources = [
   'fortran/ipccp3_loops.f90',
   'fortran/ipeom3_p_intermediates.f90',
   'fortran/ipeom3_p_loops.f90',
+  'fortran/ipeomt_p_loops.f90',
   'fortran/leftccsdt_p_intermediates.f90',
   'fortran/leftccsdt_p_loops.f90',
   'fortran/lefteaeom3_p_intermediates.f90',
@@ -151,19 +155,22 @@ fortran_sources = [
   'fortran/reorder.f90',
   'fortran/mbpt_loops.f90',
   'fortran/vvvv_contraction.f90',
-  ]
+]
 
- fortran_lib = static_library('fortran',
+
+fortran_lib = static_library('fortran',
   fortran_sources,
   fortran_args: '-ffree-line-length-512',
- )
+)
+
 
 fortran_module = custom_target('fortran_module',
   output: ['_fortranmodule.c', '_fortran-f2pywrappers2.f90'],
   input: fortran_sources,
-  command: [f2py_script, '--f2py-exe', f2py, '@INPUT@', '--build-dir', '@OUTDIR@'],
+  command: [f2py_script, '--source-root', '@SOURCE_ROOT@', '--f2py-exe', f2py, '@INPUT@', '--build-dir', '@OUTDIR@'],
   build_by_default: true
 )
+
 
 py3.extension_module('_fortran',
   fortran_module,
@@ -183,6 +190,6 @@ python_sources = [
 ]
 
 py3.install_sources(
-    python_sources,
-    subdir: 'ccpy/lib'
+  python_sources,
+  subdir: 'ccpy/lib'
 )
