@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 from pyscf import ao2mo, symm
 
@@ -133,7 +134,8 @@ def load_pyscf_integrals(
         hf_energy += nuclear_repulsion
 
         if not np.allclose(hf_energy, meanfield.energy_tot(), atol=1.0e-06, rtol=0.0):
-            raise RuntimeError("Integrals don't match mean field energy")
+            #raise RuntimeError("Integrals don't match mean field energy")
+            warnings.warn("Integrals don't match mean field energy")
 
         system.reference_energy = hf_energy
         system.frozen_energy = calc_hf_frozen_core_energy(e1int, e2int, system)

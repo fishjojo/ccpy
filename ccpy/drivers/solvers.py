@@ -616,11 +616,11 @@ def cc_jacobi(update_t, T, dT, H, X, options, t3_excitations=None, acparray=None
             )
             print(f"   Total CPU time is {time.process_time() - t_cpu_start} seconds")
             is_converged = True
-            _write_T(T.flatten(), niter)
+            #_write_T(T.flatten(), niter)
             break
 
-        if niter > 0 and niter % 10 == 0:
-            _write_T(T.flatten(), niter)
+        #if niter > 0 and niter % 10 == 0:
+        #    _write_T(T.flatten(), niter)
 
         # Save T and dT vectors to disk for DIIS
         if niter >= num_throw_away and do_diis:
